@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app")
 public class AuthController {
 
     @Autowired

@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/interview")
-@CrossOrigin(origins = "*") // Adjust for your frontend URL in production
+@CrossOrigin(origins = "ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app")
 public class InterviewController {
 
     @Autowired
