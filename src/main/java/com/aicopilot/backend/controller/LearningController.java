@@ -10,6 +10,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/learn")
+@CrossOrigin(origins = {
+        "https://ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app",
+        "https://ai-copilot-frontend-sepia.vercel.app"
+})
 public class LearningController {
 
     @Autowired

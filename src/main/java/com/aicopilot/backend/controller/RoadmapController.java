@@ -14,6 +14,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/roadmap")
+@CrossOrigin(origins = {
+        "https://ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app",
+        "https://ai-copilot-frontend-sepia.vercel.app"
+})
 public class RoadmapController {
 
     @Autowired
@@ -22,31 +26,25 @@ public class RoadmapController {
     @Autowired
     private UserRepository userRepository;
 
-    // Endpoint 1: Generate the roadmap using existing AI Profile data
     @PostMapping("/generate")
     public ResponseEntity<?> generateAndSaveRoadmap() {
         try {
-            // 1. Identify the user
             String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
             Optional<User> userOptional = userRepository.findByEmail(currentUserEmail);
 
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
 
-                // 2. Ensure they have uploaded a resume first
                 if (user.getAiProfileData() == null) {
                     return ResponseEntity.badRequest().body("{\"error\": \"Please upload and analyze a resume first.\"}");
                 }
 
-                // 3. Convert their profile data back to a JSON string for the AI prompt
                 ObjectMapper mapper = new ObjectMapper();
                 String profileJson = mapper.writeValueAsString(user.getAiProfileData());
 
-                // 4. Generate the Roadmap via Gemini AI
                 System.out.println("Generating custom roadmap for: " + currentUserEmail + "...");
                 String generatedRoadmapJson = roadmapService.generateRoadmap(profileJson);
 
-                // 5. Save the Roadmap to MongoDB
                 Map<String, Object> roadmapMap = mapper.readValue(generatedRoadmapJson, Map.class);
                 user.setCareerRoadmap(roadmapMap);
                 userRepository.save(user);
@@ -65,7 +63,6 @@ public class RoadmapController {
         }
     }
 
-    // Endpoint 2: Retrieve the saved roadmap on page refresh
     @GetMapping("/current")
     public ResponseEntity<?> getCurrentRoadmap() {
         try {

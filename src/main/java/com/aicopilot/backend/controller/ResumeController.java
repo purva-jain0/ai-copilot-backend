@@ -17,6 +17,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/resume")
+@CrossOrigin(origins = {
+        "https://ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app",
+        "https://ai-copilot-frontend-sepia.vercel.app"
+})
 public class ResumeController {
 
     @Autowired
@@ -47,7 +51,6 @@ public class ResumeController {
         }
     }
 
-    // NEW ENDPOINT: Triggered only when clicking the 'Check ATS Score' button
     @PostMapping("/check-ats")
     public ResponseEntity<?> checkAtsScore(
             @RequestParam("file") MultipartFile file,
@@ -61,18 +64,11 @@ public class ResumeController {
         }
 
         try {
-            // 1. Extract text from the uploaded PDF
             String extractedText = resumeExtractionService.extractText(file);
-
-            // 2. Call our new dedicated ATS method
             String atsJsonResult = resumeAnalyzerService.calculateAtsScore(extractedText, jobDescription);
-
-            // 3. Return the ATS metrics directly to the frontend
             return ResponseEntity.ok(atsJsonResult);
-
         } catch (Exception e) {
             e.printStackTrace();
-            // Return a 503 status code with the exact error message we threw from the service
             return ResponseEntity.status(503).body("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
@@ -82,7 +78,6 @@ public class ResumeController {
         try {
             byte[] pdfBytes = pdfGenerationService.generateAtsResume(profileData);
 
-            // Set the headers to tell the browser this is a downloadable file
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.add("Content-Disposition", "attachment; filename=Optimized_ATS_Resume.pdf");
 
@@ -94,6 +89,7 @@ public class ResumeController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
     @PostMapping("/upload")
     public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty() || !file.getContentType().equals("application/pdf")) {
@@ -101,22 +97,16 @@ public class ResumeController {
         }
 
         try {
-            // 1. Extract text and Analyze with AI
             String extractedText = resumeExtractionService.extractText(file);
             String aiJsonResult = resumeAnalyzerService.analyzeResumeWithAI(extractedText);
 
-            // FIX 1: Clean the AI response to remove any markdown formatting BEFORE parsing
             String cleanedJson = aiJsonResult.replace("```json", "").replace("```", "").trim();
-
-            // 2. Identify the user who made the request (From the JWT Token)
             String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-            // 3. Find the user in MongoDB and save the AI data permanently
             Optional<User> userOptional = userRepository.findByEmail(currentUserEmail);
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
 
-                // Convert the cleanly formatted JSON string into a Map so MongoDB can store it cleanly
                 ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> profileMap = mapper.readValue(cleanedJson, Map.class);
 
@@ -125,20 +115,17 @@ public class ResumeController {
                 System.out.println("✅ AI Profile permanently saved to MongoDB for: " + currentUserEmail);
             }
 
-            // 4. Send the cleaned data back to React to display on the screen
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")
                     .body(cleanedJson);
 
         } catch (org.springframework.web.client.HttpServerErrorException.ServiceUnavailable e) {
-            // FIX 2: Specifically catch Google's 503 Overloaded Error
             System.out.println("⚠️ Google AI API is overloaded. Retrying advised.");
             return ResponseEntity.status(503)
                     .header("Content-Type", "application/json")
                     .body("{\"error\": \"The AI servers are currently experiencing high demand. Please wait a moment and try again.\"}");
 
         } catch (Exception e) {
-            // Catch any other generic crashes
             e.printStackTrace();
             return ResponseEntity.internalServerError()
                     .header("Content-Type", "application/json")

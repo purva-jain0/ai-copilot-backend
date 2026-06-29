@@ -14,7 +14,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app")
+@CrossOrigin(origins = {
+        "https://ai-copilot-frontend-eei4v55by-purvajain606-1810s-projects.vercel.app",
+        "https://ai-copilot-frontend-sepia.vercel.app"
+})
 public class AuthController {
 
     @Autowired
@@ -26,7 +29,6 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-
     @Autowired
     private UserRepository userRepository;
 
@@ -37,10 +39,16 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email field is mandatory.");
         }
 
-        String otp = otpService.generateOtp(email);
-        emailService.sendOtpEmail(email, otp);
-
-        return ResponseEntity.ok(Map.of("message", "A 6-digit verification code has been dispatched to " + email));
+        try {
+            String otp = otpService.generateOtp(email);
+            emailService.sendOtpEmail(email, otp);
+            return ResponseEntity.ok(Map.of("message", "A 6-digit verification code has been dispatched to " + email));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", "Failed to dispatch verification code.",
+                    "details", e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/verify-otp")
@@ -64,16 +72,16 @@ public class AuthController {
             user = existingUser.get();
         }
 
-
         String token = jwtUtil.generateToken(email);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Verification successful",
                 "email", email,
                 "isProfileComplete", user.isProfileComplete(),
-                "token", token // RETURN TOKEN TO FRONTEND
+                "token", token
         ));
     }
+
     @PutMapping("/onboarding")
     public ResponseEntity<?> completeOnboarding(@RequestBody Map<String, Object> request) {
         String email = (String) request.get("email");
